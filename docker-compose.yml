@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: territory-db
+    environment:
+      POSTGRES_USER: territory_user
+      POSTGRES_PASSWORD: territory_pass
+      POSTGRES_DB: territory_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
