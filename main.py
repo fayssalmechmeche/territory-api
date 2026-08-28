@@ -11,7 +11,7 @@ import schemas
 
 app = FastAPI()
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 
 def _point_to_out(db_point: models.PointOfInterest) -> schemas.PointOfInterestOut:
@@ -68,23 +68,6 @@ async def points_nearby(latitude: float, longitude: float, radius_meters: float 
     ).all()
     return [_point_to_out(p) for p in points]
 
-@app.get("/points/{point_id}", response_model=schemas.PointOfInterestOut)
-async def get_point(point_id: int, db: Session = Depends(get_db)):
-    point = db.query(models.PointOfInterest).filter(models.PointOfInterest.id == point_id).first()
-    if not point:
-        raise HTTPException(status_code=404, detail="Point not found")
-    return _point_to_out(point)
-
-
-@app.delete("/points/{point_id}")
-async def delete_point(point_id: int, db: Session = Depends(get_db)):
-    point = db.query(models.PointOfInterest).filter(models.PointOfInterest.id == point_id).first()
-    if not point:
-        raise HTTPException(status_code=404, detail="Point not found")
-    db.delete(point)
-    db.commit()
-    return {"deleted": True}
-
 @app.get("/zones/buffer")
 async def zone_buffer(latitude: float, longitude: float, radius_meters: float = 1000, db: Session = Depends(get_db)):
     origin = WKTElement(f"POINT({longitude} {latitude})", srid=4326)
@@ -100,4 +83,36 @@ async def zone_buffer(latitude: float, longitude: float, radius_meters: float = 
         )
     ).scalar()
     return {"geojson": result}
+
+@app.get("/points/{point_id}", response_model=schemas.PointOfInterestOut)
+async def get_point(point_id: int, db: Session = Depends(get_db)):
+    point = db.query(models.PointOfInterest).filter(models.PointOfInterest.id == point_id).first()
+    if not point:
+        raise HTTPException(status_code=404, detail="Point not found")
+    return _point_to_out(point)
+
+@app.put("/points/{point_id}", response_model=schemas.PointOfInterestOut)
+async def update_point(point_id: int, point: schemas.PointOfInterestCreate, db: Session = Depends(get_db)):
+    db_point = db.query(models.PointOfInterest).filter(models.PointOfInterest.id == point_id).first()
+    if not db_point:
+        raise HTTPException(status_code=404, detail="Point not found")
+
+    db_point.name = point.name
+    db_point.category = point.category
+    db_point.geom = WKTElement(f"POINT({point.longitude} {point.latitude})", srid=4326)
+
+    db.commit()
+    db.refresh(db_point)
+    return _point_to_out(db_point)
+
+@app.delete("/points/{point_id}")
+async def delete_point(point_id: int, db: Session = Depends(get_db)):
+    point = db.query(models.PointOfInterest).filter(models.PointOfInterest.id == point_id).first()
+    if not point:
+        raise HTTPException(status_code=404, detail="Point not found")
+    db.delete(point)
+    db.commit()
+    return {"deleted": True}
+
+
 
