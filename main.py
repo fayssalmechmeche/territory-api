@@ -1,14 +1,15 @@
 from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy import text, func
+from sqlalchemy import text, func, select
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2 import Geography
 from geoalchemy2.elements import WKTElement
 from geoalchemy2.shape import to_shape
 from database import Base, engine
-from dependencies import get_db
-from auth import hash_password, verify_password, create_access_token
-from auth import get_current_user_email
+from dependencies import get_db, get_async_db
+from auth import hash_password, verify_password, create_access_token,get_current_user_email
 from fastapi.security import OAuth2PasswordRequestForm
+from cache import get_cached, set_cached
 import models
 import schemas
 
@@ -64,16 +65,26 @@ async def list_points(db: Session = Depends(get_db)):
     return [_point_to_out(p) for p in points]
 
 @app.get("/points/nearby", response_model=list[schemas.PointOfInterestOut])
-async def points_nearby(latitude: float, longitude: float, radius_meters: float = 1000, db: Session = Depends(get_db)):
+async def points_nearby(latitude: float, longitude: float, radius_meters: float = 1000, db: AsyncSession = Depends(get_async_db)):
+    cache_key = f"nearby:{latitude}:{longitude}:{radius_meters}"
+    cached_result = get_cached(cache_key)
+    if cached_result is not None:
+        return cached_result
+
     origin = WKTElement(f"POINT({longitude} {latitude})", srid=4326)
-    points = db.query(models.PointOfInterest).filter(
+    query = select(models.PointOfInterest).where(
         func.ST_DWithin(
             func.cast(models.PointOfInterest.geom, Geography),
             func.cast(origin, Geography),
             radius_meters
         )
-    ).all()
-    return [_point_to_out(p) for p in points]
+    )
+    result_db = await db.execute(query)
+    points = result_db.scalars().all()
+
+    result = [_point_to_out(p).model_dump() for p in points]
+    set_cached(cache_key, result, expire_seconds=60)
+    return result
 
 @app.get("/zones/buffer")
 async def zone_buffer(latitude: float, longitude: float, radius_meters: float = 1000, db: Session = Depends(get_db)):
