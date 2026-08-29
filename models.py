@@ -9,4 +9,10 @@ class PointOfInterest(Base):
     name = Column(String, nullable=False)
     category = Column(String, nullable=False)
     geom = Column(Geometry(geometry_type="POINT", srid=4326), index=True)
-    
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
