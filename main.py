@@ -99,7 +99,7 @@ async def get_point(point_id: int, db: Session = Depends(get_db)):
     return _point_to_out(point)
 
 @app.put("/points/{point_id}", response_model=schemas.PointOfInterestOut)
-async def update_point(point_id: int, point: schemas.PointOfInterestCreate, db: Session = Depends(get_db)):
+async def update_point(point_id: int, point: schemas.PointOfInterestCreate, db: Session = Depends(get_db), current_user_email: str = Depends(get_current_user_email)):
     db_point = db.query(models.PointOfInterest).filter(models.PointOfInterest.id == point_id).first()
     if not db_point:
         raise HTTPException(status_code=404, detail="Point not found")
@@ -113,7 +113,7 @@ async def update_point(point_id: int, point: schemas.PointOfInterestCreate, db: 
     return _point_to_out(db_point)
 
 @app.delete("/points/{point_id}")
-async def delete_point(point_id: int, db: Session = Depends(get_db)):
+async def delete_point(point_id: int, db: Session = Depends(get_db), current_user_email: str = Depends(get_current_user_email)):
     point = db.query(models.PointOfInterest).filter(models.PointOfInterest.id == point_id).first()
     if not point:
         raise HTTPException(status_code=404, detail="Point not found")
