@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import text, func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,12 +10,18 @@ from geoalchemy2.shape import to_shape
 from database import Base, engine
 from dependencies import get_db, get_async_db
 from auth import hash_password, verify_password, create_access_token,get_current_user_email
-from fastapi.security import OAuth2PasswordRequestForm
 from cache import get_cached, set_cached
 import models
 import schemas
 
+
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Base.metadata.create_all(bind=engine)
 
