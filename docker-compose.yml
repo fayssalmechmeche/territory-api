@@ -1,4 +1,18 @@
 services:
+  api:
+    build: .
+    container_name: territory-api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://territory_user:territory_pass@db:5432/territory_db
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+
   db:
     image: postgis/postgis:16-3.4
     container_name: territory-db
@@ -16,6 +30,16 @@ services:
     container_name: territory-redis
     ports:
       - "6379:6379"
+
+  test-db:
+    image: postgis/postgis:16-3.4
+    container_name: territory-test-db
+    environment:
+      POSTGRES_USER: territory_user
+      POSTGRES_PASSWORD: territory_pass
+      POSTGRES_DB: territory_test_db
+    ports:
+      - "5433:5432"
 
 volumes:
   postgres_data:

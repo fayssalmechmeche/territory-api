@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 class PointOfInterestBase(BaseModel):
+
     name: str
     category: str
     latitude: float
@@ -12,8 +13,7 @@ class PointOfInterestCreate(PointOfInterestBase):
 class PointOfInterestOut(PointOfInterestBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class UserCreate(BaseModel):
     email: str
@@ -23,8 +23,7 @@ class UserOut(BaseModel):
     id: int
     email: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class Token(BaseModel):
     access_token: str
